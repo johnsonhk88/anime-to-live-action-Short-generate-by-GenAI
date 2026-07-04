@@ -1,203 +1,158 @@
-# Anime To Live Action Short Generate by GenAI
+# anime-to-live-action-Short-generate-by-GenAI
 
 **AI-Powered Japanese Anime to Cinematic Live-Action Short Film Generator**
 
-Transform anime clips into high-quality, consistent-character live-action short films using a dual-mode (Local / Cloud) pipeline powered by **LangGraph Deep Agents**.
+Transform anime clips into high-quality, consistent-character live-action short films using **LangGraph Deep Agents** with intelligent multi-mode support.
 
-> **Goal**: Build a production-grade, privacy-respecting tool that combines the best of local GPU workflows and powerful cloud models, all orchestrated through intelligent LangGraph agents.
+> **Official Repository**: https://github.com/johnsonhk88/anime-to-live-action-Short-generate-by-GenAI  
+> **Learning Reference**: [DeepLearning.AI – AI Agents for Image and Video Generation](https://github.com/johnsonhk88/deep-learning-ai-AI-Agents-for-Image-and-Video-Generation)
+
+**Current Status**: Phase 1 - Foundation & LangGraph Deep Agent Scaffolding (July 2026)
 
 ---
 
 ## Vision
 
-Create a full-stack web platform that allows users to:
+Build a production-grade, privacy-respecting full-stack platform that converts Japanese anime scenes into cinematic live-action short films with consistent characters.
 
-- Upload short anime clips or scenes
-- Automatically analyze and adapt them into realistic live-action style
-- Generate consistent characters and cinematic video clips
-- Assemble everything into a polished short film
-- Choose between **fully local** (private, offline) or **cloud-powered** (maximum quality) execution
+The system is powered by **LangGraph** (Deep Agent with skills/tools) and supports **three flexible execution modes**:
 
-The system uses **LangGraph** as the core "Deep Agent" to intelligently orchestrate the entire pipeline with skills/tools, state persistence, and review loops.
+- **Fully Local** — Maximum privacy and offline capability
+- **Fully Cloud** — Highest visual quality and speed
+- **Hybrid Mode** — Best balance of cost, privacy, and quality (recommended)
+
+---
+
+## Supported Modes
+
+| Mode            | Analysis       | Image References     | Video Generation     | Best For                              |
+|-----------------|----------------|----------------------|----------------------|---------------------------------------|
+| **Fully Local** | LM Studio      | ComfyUI              | ComfyUI Video        | Privacy, offline, low cost            |
+| **Fully Cloud** | Gemini         | Gemini Imagen        | Veo 3.1              | Highest cinematic quality             |
+| **Hybrid**      | LM Studio      | ComfyUI              | Veo 3.1              | Best balance (recommended)            |
+
+**Hybrid Mode** allows per-step configuration (e.g., use local for analysis, cloud for final video generation).
 
 ---
 
 ## Key Features
 
-- **Dual-Mode Architecture**
-  - **Local Mode**: LM Studio + ComfyUI (full offline, privacy-first)
-  - **Cloud Mode**: Gemini + Veo 3.1 (highest quality & speed)
+- **3-Mode Support**: Local / Cloud / Hybrid (with fine-grained control)
 - **LangGraph Deep Agent** with skills/tools and supervisor pattern
-- **Stateful & Resumable** pipelines (powered by PostgreSQL checkpointer)
-- **Consistent Character Generation** across multiple shots
-- **Cinematic Final Assembly** using Revideo
-- **Modern Web Portal** (React + FastAPI)
-- **Production-ready stack**: FastAPI, LangGraph, Celery, PostgreSQL, Docker
+- Stateful & resumable pipelines (PostgreSQL checkpointer)
+- Consistent character generation across multiple shots
+- Cinematic final assembly using **Revideo**
+- Modern React + FastAPI web portal
+- Clean, extensible Python architecture
 
 ---
 
-## Architecture Overview
+## Architecture
 
 ```mermaid
 graph TD
-    A[React Frontend Portal] --> B[FastAPI Backend]
-    B --> C[Celery Task Queue]
-    C --> D[LangGraph Deep Agent<br/>Stateful Pipeline]
+    Frontend[React Portal] --> API[FastAPI]
+    API --> Celery[Celery Task Queue]
+    Celery --> LangGraph[LangGraph Deep Agent]
     
-    D --> E{Mode Switch}
-    E -->|Local| F[LM Studio + ComfyUI]
-    E -->|Cloud| G[Gemini + Veo 3.1]
+    LangGraph --> ModeFactory[Mode Factory]
     
-    F & G --> H[PostgreSQL<br/>+ LangGraph Checkpointer]
+    ModeFactory --> Local[Local Mode<br/>LM Studio + ComfyUI]
+    ModeFactory --> Cloud[Cloud Mode<br/>Gemini + Veo]
+    ModeFactory --> Hybrid[Hybrid Mode<br/>Dynamic routing]
     
-    D --> I[Revideo Render]
-    I --> J[Final MP4 + Assets]
-    
-    B <--> K[Real-time Progress<br/>WebSocket]
+    Local & Cloud & Hybrid --> Postgres[(PostgreSQL + Checkpointer)]
 ```
 
-## Tech Stack
+---
 
-|Layer           |Technology                              |Notes                                   |
-|----------------|----------------------------------------|----------------------------------------|
-|Backend         |FastAPI + Pydantic                      |Core API layer                          |
-|Agent Framework |LangGraph + LangChain Tools             |Deep Agent with skills                  |
-|Database        |PostgreSQL                              |Application data + LangGraph checkpoints|
-|Task Queue      |Celery + Redis                          |Background job execution                |
-|Local Inference |LM Studio + ComfyUI                     |Privacy-first mode                      |
-|Cloud Inference |Google Gemini + Veo 3.1                 |High-quality mode                       |
-|Video Assembly  |Revideo (via subprocess)                |Programmatic cinematic editing          |
-|Frontend        |React 19 + TypeScript + Vite + shadcn/ui|Modern portal UI                        |
-|Containerization|Docker + Docker Compose                 |One-command development setup           |
+## Tech Stack (Phase 1)
 
+- **Backend**: FastAPI + SQLAlchemy 2.0 + Alembic
+- **Agent Framework**: **LangGraph** (Primary Deep Agent)
+- **Database**: PostgreSQL (application data + LangGraph checkpoints)
+- **Task Queue**: Celery + Redis
+- **Local Stack**: LM Studio + ComfyUI
+- **Cloud Stack**: Google Gemini + Veo 3.1
+- **Containerization**: Docker Compose
 
-## Dual Mode Support
-
-|Feature         |Local Mode                              |Cloud Mode                              |
-|----------------|----------------------------------------|----------------------------------------|
-|LLM Analysis    |LM Studio                               |Gemini                                  |
-|Image/Reference Gen|ComfyUI (Flux/SD3.5 + IP-Adapter)       |Gemini Imagen / Nano Banana             |
-|Video Generation|ComfyUI Video Workflows                 |Veo 3.1                                 |
-|Character Consistency|Excellent (ControlNet + IP-Adapter)     |Very Good (Reference + Chaining)        |
-|Privacy         |100% Offline                            |Cloud processed                         |
-|Cost            |Electricity only                        |Pay-per-use                             |
-|Best For        |Personal projects, sensitive data       |Highest visual quality                  |
-
+---
 
 ## Project Structure
-```text
-anime-real-forge/
-├── backend/
-│   ├── app/
-│   │   ├── api/routers/          # FastAPI endpoints
-│   │   ├── agents/               # LangGraph graph, state, tools
-│   │   ├── services/             # Mode manager, integrations
-│   │   ├── integrations/         # ComfyUI, Gemini, LM Studio, Revideo
-│   │   ├── tasks/                # Celery tasks
-│   │   ├── db/                   # SQLAlchemy models + Alembic
-│   │   └── core/
-│   ├── workflows/                # ComfyUI API JSON workflows
-│   └── main.py
-├── frontend/
-│   └── src/                      # React + TypeScript portal
-├── docker-compose.yml
-├── pyproject.toml
-├── README.md
-└── docs/                         # Architecture decisions, prompts, etc.
 
 ```
+anime-to-live-action-Short-generate-by-GenAI/
+├── backend/
+│   ├── app/
+│   │   ├── core/                    # Config + Mode definitions
+│   │   ├── services/                # Mode Factory + Pipeline Orchestrator
+│   │   ├── agents/                  # LangGraph Deep Agent (primary)
+│   │   │   ├── state.py
+│   │   │   ├── graph.py
+│   │   │   └── tools/
+│   │   ├── integrations/
+│   │   │   ├── local/               # LM Studio + ComfyUI
+│   │   │   └── cloud/               # Gemini + Veo
+│   │   ├── api/
+│   │   ├── db/
+│   │   └── main.py
+│   ├── workflows/                   # ComfyUI workflows
+│   └── pyproject.toml
+├── frontend/                        # React portal (later phase)
+├── docker-compose.yml
+├── docs/
+└── README.md
+```
 
--------------------------------------------
+---
 
-## Development Roadmap
-### Phase 1: Foundation (Week 1–2)
+## Phase 1 — Completed
 
-- FastAPI + SQLAlchemy + Alembic + PostgreSQL setup
-- Basic project CRUD + file upload
-- Mode switcher service (Local / Cloud)
-- Docker Compose environment
-- Basic React frontend skeleton
+- [x] Project scaffolding with correct repository name
+- [x] Docker Compose (PostgreSQL + Redis)
+- [x] FastAPI basic application
+- [x] SQLAlchemy models (`Project`, `Job`)
+- [x] `PipelineState` with 3-mode support
+- [x] Basic LangGraph graph + PostgreSQL checkpointer ready
+- [x] Mode foundation prepared (Local / Cloud / Hybrid)
 
-### Phase 2: LangGraph Core (Week 3–4)
-
-- Define PipelineState TypedDict
-- Implement LangGraph tools/skills (@tool)
-- Build Supervisor + Worker graph
-- Add PostgreSQL checkpointer (AsyncPostgresSaver)
-- Basic analysis node (Gemini + LM Studio)
-
-### Phase 3: Generation Pipeline (Week 5–7)
-
-- Character reference generation (dual mode)
-- Shot planning & prompt engineering
-- Video clip generation with consistency logic
-- Quality review node + conditional routing
-
-### Phase 4: Final Assembly & Polish (Week 8–9)
-
-- Revideo integration (subprocess)
-- Celery task wrapping for LangGraph runs
-- WebSocket real-time progress updates
-- Asset management & download
-
-### Phase 5: Frontend & Release (Week 10+)
-
-- Full React portal (tabs: Analysis → Characters → Clips → Final)
-- Settings page (API keys, model selection, prompt templates)
-- Error handling, retry, and resume support
-- Documentation + example workflows
-
+---
 
 ## Getting Started (Development)
-#### Note: This section will be expanded once the initial scaffolding is complete.
 
 ```bash
 # Clone the repository
-git clone https://github.com/johnsonhk88/anime-real-forge.git
-cd anime-real-forge
+git clone https://github.com/johnsonhk88/anime-to-live-action-Short-generate-by-GenAI.git
+cd anime-to-live-action-Short-generate-by-GenAI
 
-# Start all services
+# Start infrastructure
 docker compose up -d
 
-# Backend
+# Backend setup
 cd backend
-uvicorn app.main:app --reload
+uv sync                    # or pip install -e .
+cp .env.example .env
 
-# Frontend (in another terminal)
-cd frontend
-npm install
-npm run dev
+# Run the API
+uv run uvicorn app.main:app --reload --port 8000
 ```
-------------------------
 
-## Current Status
-This repository is in early planning & scaffolding phase.
-The architecture and technical decisions have been discussed and finalized:
+API Documentation: http://localhost:8000/docs
 
-- Pure Python codebase (no n8n)
-- LangGraph as the central Deep Agent framework
-- PostgreSQL for both data and agent checkpoints
-- Dual-mode support from day one
+---
 
------------------
+## Development Roadmap
 
+Detailed phases will be documented in `docs/roadmap.md`.
 
-## Contributing
-This is currently a solo development project. Once the core pipeline is stable, contributions will be welcomed — especially in:
+**Next**: Expand LangGraph with real analysis, image, and video generation tools supporting all three modes.
 
-- New ComfyUI workflows
-- Improved consistency techniques
-- Frontend UI/UX improvements
-- Additional agent skills/tools
+---
 
------------------
+**This is a living project.** We prioritize clean Python architecture, LangGraph as the primary deep agent framework, and flexible multi-mode execution (Local / Cloud / Hybrid).
 
-## License
-**MIT License (to be confirmed)**
+---
 
-
---------------------------------
-## Author
-**Johnson Chong (Chong Kit Sang)**
-**GitHub: johnsonhk88**
-**LinkedIn / Kaggle: johnsonhk88**
+**Author**: Johnson (Chong Kit Sang)  
+GitHub: [johnsonhk88](https://github.com/johnsonhk88)  
+Started: July 2026
