@@ -2,7 +2,11 @@ from app.core.modes import ExecutionMode, MODE_CONFIGS
 
 
 def resolve_providers(mode: str) -> dict:
-    parsed_mode = ExecutionMode(mode)
+    """Resolve provider config for a given mode string (local/cloud/hybrid). Falls back to hybrid for unknown values."""
+    try:
+        parsed_mode = ExecutionMode(mode)
+    except ValueError:
+        parsed_mode = ExecutionMode.HYBRID
     return MODE_CONFIGS.get(parsed_mode, MODE_CONFIGS[ExecutionMode.HYBRID]).copy()
 
 

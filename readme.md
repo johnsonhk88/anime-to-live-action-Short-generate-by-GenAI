@@ -158,6 +158,11 @@ anime-to-live-action-Short-generate-by-GenAI/
 - [x] Mode definitions (Local / Cloud / Hybrid) with provider factory
 - [x] Environment-configurable settings via `.env` with friendly startup validation
 - [x] Missing API key detection with setup instructions on startup
+- [x] Virtual environment + Jupyter kernel for isolated testing
+- [x] 5 model validation notebooks (LM Studio, ComfyUI, Gemini, Deep Agents, full pipeline)
+- [x] 56 unit tests covering mode factory, config, tools, and API endpoints
+- [x] `litellm` + `langchain-litellm` integration for multi-provider LLM support
+- [x] `extract_content` helper for reasoning model response extraction (Qwen, DeepSeek-R1, etc.)
 
 ---
 
@@ -211,6 +216,64 @@ GOOGLE_API_KEY=your-key-here
 The `agent_model` supports any model string in `provider:model` format (e.g., `openai:gpt-5.5`, `anthropic:claude-sonnet-4-6`).
 
 > **Note**: If you start the server without configuring the required API key for your chosen model, the app will display a friendly error with setup instructions instead of a cryptic traceback.
+
+---
+
+## Testing & Validation
+
+Validate all AI services before wiring real integrations. Run in order below.
+
+### Step 1: Setup Environment
+
+```bash
+cd backend
+python3 -m venv venv-backend-test
+source venv-backend-test/bin/activate
+pip install -r requirements.txt
+python -m ipykernel install --user --name=venv-backend-test --display-name="Python (venv-backend-test)"
+```
+
+### Step 2: Validate AI Services (Jupyter Notebooks)
+
+Open each notebook in VS Code, select kernel **Python (venv-backend-test)**, and run cells in order:
+
+| Step | Notebook | What It Validates |
+|------|----------|-------------------|
+| 1 | `notebooks/01_test_lm_studio.ipynb` | LM Studio reachable, model list, text gen via direct HTTP + litellm + langchain-litellm |
+| 2 | `notebooks/02_test_comfyui.ipynb` | ComfyUI reachable, workflow queue & execution |
+| 3 | `notebooks/03_test_gemini.ipynb` | Gemini API key works, text gen via SDK + langchain, Vertex AI |
+| 4 | `notebooks/04_test_deepagents.ipynb` | Deep Agents coordinator + subagent + tool invocation |
+| 5 | `notebooks/05_test_full_pipeline.ipynb` | 7-step pipeline end-to-end, quality loop, FastAPI TestClient |
+
+Each notebook confirms connectivity → verifies response format → flags integration gaps.
+
+### Step 3: Run Unit Tests
+
+```bash
+cd backend
+./venv-backend-test/bin/pytest tests/ -v
+```
+
+56 tests covering: mode factory, config/settings, all 7 tool modules, and FastAPI endpoints.
+
+### Step 4: FastAPI Smoke Test
+
+```bash
+cd backend
+./venv-backend-test/bin/uvicorn app.main:app --port 8000
+
+# In another terminal:
+curl http://localhost:8000/health
+# {"status":"ok"}
+
+curl -X POST http://localhost:8000/generate \
+  -H "Content-Type: application/json" \
+  -d '{"clip_path": "/test/anime.mp4", "mode": "hybrid", "max_iterations": 1}'
+```
+
+### Step 5: Wire Real AI Integrations
+
+After all notebooks pass, replace mock tool data in `backend/app/agents/tools/*.py` with real calls to the validated AI services. Update `.env` to select your active provider/model.
 
 ---
 

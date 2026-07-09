@@ -39,6 +39,7 @@ mlrun/*
 # ----------------------
 .venv
 venv/
+venv-backend-test/
 ENV/
 env/
 .conda/

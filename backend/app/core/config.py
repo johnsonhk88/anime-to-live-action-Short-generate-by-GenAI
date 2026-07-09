@@ -34,7 +34,11 @@ class Settings(BaseSettings):
     anthropic_api_key: Optional[str] = None
     openrouter_api_key: Optional[str] = None
 
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8"}
+    # Local service URLs
+    lm_studio_base_url: str = "http://localhost:1234/v1"
+    comfyui_base_url: str = "http://localhost:8188"
+
+    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
 
 
 def get_settings() -> Settings:
