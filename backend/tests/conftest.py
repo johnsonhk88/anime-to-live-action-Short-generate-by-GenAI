@@ -1,16 +1,47 @@
 import os
-import pytest
 from typing import Generator
+
+import pytest
 from fastapi.testclient import TestClient
 
-# Set env vars BEFORE any app imports
-os.environ.setdefault("AGENT_MODEL", "ollama:llama3")
+os.environ["MOCK_PROVIDERS"] = "true"
 os.environ.setdefault("DEFAULT_MODE", "hybrid")
 os.environ.setdefault("MAX_PIPELINE_ITERATIONS", "3")
+os.environ.setdefault("SEEDANCE_BACKEND", "openrouter")
 
-# Reset settings cache at module import time
-import app.core.config as _config
-_config._settings_instance = None
+from app.core.config import reset_settings
+
+reset_settings()
+
+
+@pytest.fixture(autouse=True)
+def isolate_settings(monkeypatch, tmp_path):
+    """Keep tests off backend/.env so slot defaults are deterministic."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("MOCK_PROVIDERS", "true")
+    monkeypatch.setenv("DEFAULT_MODE", "hybrid")
+    monkeypatch.setenv("SEEDANCE_BACKEND", "openrouter")
+    for key in (
+        "LLM_PROFILE",
+        "LLM_MODEL",
+        "LLM_BASE_URL",
+        "LLM_API_KEY",
+        "AGENT_MODEL",
+        "IMAGE_PROVIDER",
+        "IMAGE_MODEL",
+        "VIDEO_PROVIDER",
+        "VIDEO_MODEL",
+        "TTS_PROFILE",
+        "TTS_MODEL",
+        "TTS_ENABLED",
+        "OPENROUTER_API_KEY",
+        "OPENAI_API_KEY",
+        "GOOGLE_API_KEY",
+    ):
+        monkeypatch.delenv(key, raising=False)
+    reset_settings()
+    yield
+    reset_settings()
 
 
 @pytest.fixture(scope="session")
@@ -21,19 +52,17 @@ def anyio_backend():
 @pytest.fixture
 def test_client() -> Generator[TestClient, None, None]:
     """FastAPI TestClient fixture that mocks the pipeline agent before app startup."""
-    from unittest.mock import patch, MagicMock
-    from app.main import app
-    from app.core.config import _settings_instance
+    from unittest.mock import MagicMock, patch
 
-    # Reset settings cache so app startup creates fresh config
-    _settings_instance = None
+    from app.main import app
+
+    reset_settings()
 
     mock_agent = MagicMock()
     mock_agent.invoke.return_value = {
         "messages": [MagicMock(content="Pipeline completed successfully. Final video: /output/final.mp4")]
     }
 
-    # Patch create_pipeline_agent BEFORE the app starts (lifespan calls it via app.agents.graph)
     with patch("app.main.create_pipeline_agent", return_value=mock_agent):
         with TestClient(app) as client:
             yield client
@@ -61,7 +90,7 @@ def sample_analysis_result() -> dict:
         ],
         "motion_data": {"camera_movements": ["pan_left"], "pace": "dynamic"},
         "style_notes": "Dark fantasy aesthetic",
-        "provider": "lm_studio",
+        "provider": "lmstudio",
     }
 
 

@@ -14,6 +14,14 @@ class TestHealthEndpoint:
         resp = test_client.post("/health")
         assert resp.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
 
+    def test_health_slots(self, test_client):
+        resp = test_client.get("/health/slots")
+        assert resp.status_code == status.HTTP_200_OK
+        data = resp.json()
+        assert data["status"] == "ok"
+        assert "slots" in data
+        assert data["slots"]["video"] == "seedance_2.5"
+
 
 class TestGenerateEndpoint:
     def test_generate_returns_200_with_valid_request(self, test_client):

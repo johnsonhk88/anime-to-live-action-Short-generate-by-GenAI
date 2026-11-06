@@ -79,13 +79,16 @@ The agent returns a quality assessment with pass/fail, score, and feedback.
 
 **Quality Loop**: If `passed` is `False` and `iteration < max_iterations`, increment iteration and return to Step 5 with the review feedback. If `passed` is `True` or `iteration >= max_iterations`, proceed to Step 7.
 
-### Step 7: Assemble Final
+### Step 7: Assemble Final (+ optional voice-over)
 
 Delegate to `assemble-final-agent` with all approved clip paths.
 
 Pass:
 - All clip paths that passed quality review
 - Desired transition type
+- Optional narrator / character script
+
+If a voice-over script is present and TTS is not `none`, call `synthesize_voiceover` then `mux_audio`. Duck native Seedance/H3 audio under the TTS track.
 
 The agent returns the final assembled video path.
 
@@ -95,9 +98,12 @@ The agent returns the final assembled video path.
 - **Mode switching**: The mode can be changed between runs. Always use the mode the user specified.
 - **Partial results**: If a step fails critically, return partial results with an error message rather than crashing.
 - **Quality loop exhaustion**: If max_iterations is reached without passing quality review, proceed with the best available clips and note the quality limitation in the final output.
+- **Provider down**: Tools fall back to structured mock output with `fallback: mock` and an `error` field rather than crashing the coordinator.
 
 ## Mode-Specific Notes
 
-- **local**: All processing runs on local infrastructure (LM Studio, ComfyUI). Slower but private.
-- **cloud**: Uses cloud APIs (Gemini, Veo). Fastest and highest quality but requires API keys.
-- **hybrid** (default): Analysis runs locally, video generation runs in cloud. Best balance.
+Slots are mix-and-match. Env `LLM_PROFILE` / `IMAGE_PROVIDER` / `VIDEO_PROVIDER` / `TTS_PROFILE` override the table.
+
+- **local**: LLM=LM Studio (or vLLM / SGLang / Strata), image=vLLM-Omni Qwen-Image (or SGLang Diffusion / ComfyUI), video=MiniMax H3 (or LTX 2.5), TTS=Qwen3-TTS.
+- **cloud**: LLM=OpenRouter, image=GPT Image 2 (Nano Banana 2 optional), video=Seedance 2.5 (OpenRouter or direct API), TTS=OpenAI speech (optional; Seedance already has native audio).
+- **hybrid** (default): local LLM + local Qwen-Image + Seedance 2.5 + local Qwen3-TTS.

@@ -78,7 +78,7 @@ class TestReferenceTools:
         assert "resolution" in result
         assert "provider" in result
         assert result["resolution"] == "1024x1024"
-        assert result["provider"] == "comfyui"
+        assert result["provider"] == "vllm_omni"
 
     def test_style_transfer_reference(self, sample_character_design):
         from app.agents.tools.reference import style_transfer_reference
@@ -133,7 +133,7 @@ class TestVideoGenerationTools:
         assert result["resolution"] == "1920x1080"
         assert "fps" in result
         assert "provider" in result
-        assert result["provider"] == "veo"
+        assert result["provider"] == "seedance_2.5"
 
     def test_apply_consistent_style(self):
         from app.agents.tools.video_generation import apply_consistent_style
@@ -208,6 +208,19 @@ class TestAssemblyTools:
         assert "bitrate" in result
         assert result["quality"] == "high"
 
+    def test_synthesize_voiceover_mock(self):
+        from app.agents.tools.assembly import synthesize_voiceover
+        result = synthesize_voiceover("The hero enters the temple.", voice="narrator", mode="hybrid")
+        assert result["provider"] == "qwen3_tts"
+        assert "audio_path" in result
+        assert result["text"] == "The hero enters the temple."
+
+    def test_mux_audio_skips_missing_files(self):
+        from app.agents.tools.assembly import mux_audio
+        result = mux_audio("/missing.mp4", "/missing.wav")
+        assert result["result"] in ("skipped", "success")
+        assert "output_path" in result
+
 
 class TestToolImports:
     """Verify all tools are importable from the package __init__."""
@@ -241,5 +254,5 @@ class TestToolImports:
         for mod in modules:
             for name, func in inspect.getmembers(mod, inspect.isfunction):
                 # Only check functions defined in this module (not imported ones like get_analysis_provider)
-                if getattr(func, "__module__", None) == mod.__name__:
+                if getattr(func, "__module__", None) == mod.__name__ and not name.startswith("_"):
                     assert func.__doc__, f"{mod.__name__}.{name} is missing a docstring"

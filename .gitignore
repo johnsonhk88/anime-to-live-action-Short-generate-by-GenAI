@@ -1,6 +1,5 @@
 # ============================================================
-# AI Bank Statement Automation - .gitignore
-# Updated for new project structure (June 2026)
+# anime-to-live-action-Short-generate-by-GenAI
 # ============================================================
 
 # ----------------------
@@ -55,6 +54,8 @@ env/
 # ----------------------
 data/uploads/
 data/processed/
+data/outputs/
+backend/data/
 data/vector_stores/
 chroma_db/
 faiss_index/

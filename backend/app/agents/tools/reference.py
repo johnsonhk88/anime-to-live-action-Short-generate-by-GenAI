@@ -1,4 +1,4 @@
-from app.services.mode_factory import get_image_gen_provider
+from app.services.mode_factory import get_image_gen_provider, is_mock
 
 
 def generate_reference_image(prompt: str, mode: str = "hybrid") -> dict:
@@ -12,15 +12,30 @@ def generate_reference_image(prompt: str, mode: str = "hybrid") -> dict:
         Dict with the generated image path and metadata.
     """
     provider = get_image_gen_provider(mode)
+    if is_mock():
+        safe_name = prompt[:40].replace(" ", "_").lower()
+        return {
+            "prompt": prompt,
+            "image_path": f"/references/{safe_name}_{hash(prompt) % 10000:04d}.png",
+            "resolution": "1024x1024",
+            "provider": provider,
+            "seed": hash(prompt) % (2**31),
+        }
 
-    safe_name = prompt[:40].replace(" ", "_").lower()
-    return {
-        "prompt": prompt,
-        "image_path": f"/references/{safe_name}_{hash(prompt) % 10000:04d}.png",
-        "resolution": "1024x1024",
-        "provider": provider,
-        "seed": hash(prompt) % (2**31),
-    }
+    from app.services.image.client import generate_image
+
+    try:
+        return generate_image(prompt, mode=mode).to_dict()
+    except Exception as exc:
+        safe_name = prompt[:40].replace(" ", "_").lower()
+        return {
+            "prompt": prompt,
+            "image_path": f"/references/{safe_name}_{hash(prompt) % 10000:04d}.png",
+            "resolution": "1024x1024",
+            "provider": provider,
+            "error": str(exc),
+            "fallback": "mock",
+        }
 
 
 def style_transfer_reference(anime_frame_path: str, character_design: dict) -> dict:

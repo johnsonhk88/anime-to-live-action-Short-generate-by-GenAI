@@ -1,6 +1,5 @@
-from deepagents import create_deep_agent
+from pathlib import Path
 
-from app.core.config import get_settings
 from app.agents.state import (
     AnalysisResult,
     CharacterDesigns,
@@ -16,7 +15,18 @@ from app.agents.tools.reference import generate_reference_image, style_transfer_
 from app.agents.tools.shot_planning import plan_cinematic_shot, calculate_camera_movement
 from app.agents.tools.video_generation import generate_video_clip, apply_consistent_style
 from app.agents.tools.quality_review import review_video_quality, check_character_consistency
-from app.agents.tools.assembly import assemble_final_video, add_transitions, render_final_output
+from app.agents.tools.assembly import (
+    assemble_final_video,
+    add_transitions,
+    render_final_output,
+    synthesize_voiceover,
+    mux_audio,
+)
+from app.core.config import get_settings
+from app.services.llm.model import build_chat_model
+from app.services.mode_factory import resolve_slots
+
+SKILLS_DIR = str(Path(__file__).resolve().parents[2] / "skills")
 
 PIPELINE_COORDINATOR_PROMPT = """\
 You are the Anime-to-Live-Action Pipeline Coordinator. Your job is to orchestrate the \
@@ -30,7 +40,7 @@ You have access to specialized subagents for each pipeline step. Always use them
 4. **plan-shots-agent** — Plans cinematic shots based on the scene analysis and references.
 5. **generate-clips-agent** — Generates video clips following the shot plan.
 6. **review-quality-agent** — Reviews clip quality against the shot plan.
-7. **assemble-final-agent** — Assembles all approved clips into the final video.
+7. **assemble-final-agent** — Assembles clips, optional TTS voice-over, and muxes audio.
 
 Flow rules:
 - Run steps in strict order. Each step depends on the previous step's output.
@@ -38,12 +48,16 @@ Flow rules:
   If quality is below threshold, increment iteration and loop back to generate-clips-agent.
   If max_iterations reached or quality passes, proceed to assemble-final-agent.
 - Pass the mode setting (local/cloud/hybrid) through to subagents so they use the right provider.
+- If voice-over is requested, call synthesize_voiceover then mux_audio after assembly.
+- Seedance/H3 may already include native scene audio; duck it under TTS when both exist.
 
 Always provide the user with the final result including the output video path and metadata.\
 """
 
 
-def create_pipeline_agent():
+def create_pipeline_agent(mode: str | None = None):
+    from deepagents import create_deep_agent
+
     subagents = [
         {
             "name": "analyze-agent",
@@ -89,19 +103,32 @@ def create_pipeline_agent():
         },
         {
             "name": "assemble-final-agent",
-            "description": "Assembles all approved video clips into the final cinematic short film. Call last, after all clips have passed quality review.",
-            "system_prompt": "You are a video editing specialist. Assemble the final video using assemble_final_video, add_transitions, and render_final_output. Create a polished cinematic short film.",
-            "tools": [assemble_final_video, add_transitions, render_final_output],
+            "description": "Assembles approved clips, optional TTS voice-over, and muxes audio into the final film. Call last.",
+            "system_prompt": "You are a video editing specialist. Assemble the final video using assemble_final_video, add_transitions, and render_final_output. If a voice-over script exists, call synthesize_voiceover then mux_audio.",
+            "tools": [
+                assemble_final_video,
+                add_transitions,
+                render_final_output,
+                synthesize_voiceover,
+                mux_audio,
+            ],
             "response_format": FinalAssembly,
         },
     ]
 
     settings = get_settings()
+    run_mode = mode or settings.default_mode
+    slots = resolve_slots(run_mode)
+    model = build_chat_model(run_mode)
     agent = create_deep_agent(
-        model=settings.agent_model,
-        system_prompt=PIPELINE_COORDINATOR_PROMPT,
+        model=model,
+        system_prompt=(
+            PIPELINE_COORDINATOR_PROMPT
+            + f"\n\nActive mode: {run_mode}. Slots: llm={slots.llm}, image={slots.image}, "
+            f"video={slots.video}, tts={slots.tts}."
+        ),
         subagents=subagents,
-        skills=["./skills/"],
+        skills=[SKILLS_DIR],
         name="anime-live-action-coordinator",
     )
     return agent

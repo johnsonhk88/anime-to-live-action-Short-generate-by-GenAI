@@ -53,3 +53,10 @@ class FinalAssembly(BaseModel):
     final_path: str = Field(default="", description="Path to the final assembled video")
     duration: float = 0.0
     clip_count: int = 0
+
+
+class VoiceOver(BaseModel):
+    audio_path: str = Field(default="", description="Path to synthesized voice-over audio")
+    duration: float = 0.0
+    provider: str = ""
+    voice: str = "narrator"
