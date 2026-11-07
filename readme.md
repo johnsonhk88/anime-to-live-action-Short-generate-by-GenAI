@@ -1,108 +1,120 @@
 # anime-to-live-action-Short-generate-by-GenAI
 
-**AI-Powered Japanese Anime to Cinematic Live-Action Short Film Generator**
-
-Transform anime clips into consistent-character live-action shorts with **Deep Agents** and mix-and-match local/cloud providers.
+Brief a live-action short in **chat**, lock **characters / scenes / objects / VO / BGM**, then generate clips. You can also **upload** an anime clip or stills as reference.
 
 > **Repo**: https://github.com/johnsonhk88/anime-to-live-action-Short-generate-by-GenAI
 
-**Status**: Phase 2 — capability slots (LLM / image / video / TTS + MCP). Tools mock when `MOCK_PROVIDERS=true`.
+**Status**: Workflow slice is usable with mocks (chat → bible → VO audio → BGM placeholder → mix plan). GPU/cloud engines are adapters behind that. `MOCK_PROVIDERS=true` until you wire keys.
 
 ---
 
-## Vision
+## Two layers
 
-A privacy-respecting pipeline that converts Japanese anime scenes into cinematic live-action with consistent characters. Transport is **OpenAI-compatible REST** — not a Google-only stack, and not LiteLLM.
+| Layer | What it is | Where |
+|-------|------------|--------|
+| **Workflow (the product)** | Projects, chat, storyboard, scenes, objects, VO text/audio, BGM, mix, UI | `frontend/` + `backend/app/api/` + `backend/app/workflow/` + SQLite/Postgres |
+| **Services (engines)** | OpenAI-compatible LLM, image, video, TTS, music stub | `backend/app/services/` + mode slots |
+
+Chat and upload both write the **same** project. Regen is per asset (“rewrite VO”, “new BGM”), not one giant `/generate`.
 
 ---
 
-## Modes (defaults)
+## 30-second start (Cutting Room)
 
-Env `LLM_PROFILE` / `IMAGE_PROVIDER` / `VIDEO_PROVIDER` / `TTS_PROFILE` override any cell. Full table: [docs/02-modes-and-slots.md](docs/02-modes-and-slots.md).
+```bash
+# API
+cd backend
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env          # set MOCK_PROVIDERS=true
+uvicorn app.main:app --reload --port 8000
+
+# UI (other terminal)
+cd frontend
+npm install && npm run dev
+```
+
+Open **http://localhost:5173** → New project → send a brief  
+e.g. `Dark-fantasy 30s short: scarred swordsman vs temple spirit, rain, 16:9.`
+
+Then: `VO text: …` · Regen VO audio · Regen BGM · Mix.
+
+Tests: `cd backend && pytest tests/ -v` (73+).
+
+---
+
+## How a film is built
+
+```
+Chat brief  and/or  upload clip / stills
+        ↓
+Storyboard panels
+        ↓
+Characters · Scenes · Objects
+        ↓
+VO text → VO audio (TTS)
+BGM cue → score bed (placeholder WAV for now)
+        ↓
+Panel stills / clips (service adapters)
+        ↓
+Mix: picture + VO + BGM (ducked under dialogue)
+```
+
+---
+
+## Service modes (when mocks are off)
+
+**Hybrid** = inexpensive online LLM + **local video** (Seedance/Veo stay on `cloud` because clip APIs dominate cost).
+
+Env `LLM_PROFILE` / `IMAGE_PROVIDER` / `VIDEO_PROVIDER` / `TTS_PROFILE` override any cell. [docs/02-modes-and-slots.md](docs/02-modes-and-slots.md)
 
 | Mode | LLM | Image | Video | TTS |
 |------|-----|-------|-------|-----|
 | **local** | LM Studio | vLLM-Omni Qwen-Image | MiniMax H3 | Qwen3-TTS |
 | **cloud** | OpenRouter | GPT Image 2 | Seedance 2.5 | OpenAI speech |
-| **hybrid** (default) | LM Studio | vLLM-Omni Qwen-Image | Seedance 2.5 | Qwen3-TTS |
-
-Hybrid = local analysis + local refs + cloud Seedance video.
-
----
-
-## 30-second start
-
-```bash
-cd backend
-python3 -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-cp .env.example .env
-# add: MOCK_PROVIDERS=true
-uvicorn app.main:app --reload --port 8000
-
-curl -s http://localhost:8000/health/slots | python3 -m json.tool
-pytest tests/ -v
-```
-
-`GET /health/slots` is the source of truth for what will run.
-
-**Next:** [docs/01-quickstart.md](docs/01-quickstart.md) · [docs/README.md](docs/README.md)
+| **hybrid** (default) | OpenRouter (cheap LLM) | vLLM-Omni Qwen-Image | MiniMax H3 (local video) | Qwen3-TTS |
 
 ---
 
 ## Docs
 
-| Guide | When to read |
-|-------|----------------|
-| [Quickstart](docs/01-quickstart.md) | Dry-run, pytest, first `/generate` |
-| [Modes and slots](docs/02-modes-and-slots.md) | Pick local / cloud / hybrid and overrides |
+| Guide | Read when |
+|-------|-----------|
+| [Quickstart](docs/01-quickstart.md) | Install, UI, mocks, tests |
+| [Workflow](docs/08-workflow.md) | Chat, boards, jobs, SQLite/Postgres |
+| [HTTP API](docs/06-api.md) | `/api/projects` and legacy `/generate` |
+| [Modes and slots](docs/02-modes-and-slots.md) | Engine routing |
 | [Local engines](docs/03-local-engines.md) | LM Studio, vLLM, Omni, SGLang, Strata, Comfy |
-| [Cloud providers](docs/04-cloud-providers.md) | OpenRouter, Seedance, GPT Image 2, Grok |
-| [MCP](docs/05-mcp.md) | OpenCode / other agents |
-| [HTTP API](docs/06-api.md) | `/health`, `/generate` |
-| [Troubleshooting](docs/07-troubleshooting.md) | Keys, ports, mock fallback |
-| [Env reference](backend/.env.example) | Every variable |
+| [Cloud providers](docs/04-cloud-providers.md) | OpenRouter, Seedance, GPT Image 2 |
+| [MCP](docs/05-mcp.md) | OpenCode tools |
+| [Troubleshooting](docs/07-troubleshooting.md) | Keys, ports, DB, UI proxy |
+| [Env](backend/.env.example) | Every variable |
+| [Frontend](frontend/README.md) | Vite app |
 
----
-
-## Architecture
-
-```mermaid
-graph TD
-    API[FastAPI] --> Agent[Deep Agents Coordinator]
-    MCP[anime-pipeline MCP] --> Tools
-    Agent --> Tools[Pipeline tools]
-    Tools --> Slots[Slot resolver]
-    Slots --> LLM[OpenAI-compat LLM]
-    Slots --> Image[Image adapters]
-    Slots --> Video[Video adapters]
-    Slots --> TTS[TTS adapters]
-```
-
-Pipeline: analyze → design characters → reference images → plan shots → generate clips → review → assemble + optional voice-over.
+Index: [docs/README.md](docs/README.md)
 
 ---
 
 ## Layout
 
 ```
-backend/app/core/          # settings, modes, profiles
-backend/app/services/      # llm / image / video / tts adapters
-backend/app/agents/        # Deep Agents coordinator + tools
-backend/app/mcp_server.py  # python -m app.mcp_server
-backend/app/main.py        # FastAPI
-backend/.env.example
+frontend/                  Cutting Room UI (Vite + React)
+backend/app/api/          workflow REST
+backend/app/workflow/     chat director, jobs, mix stub
+backend/app/db/            SQLAlchemy models (SQLite default)
+backend/app/services/     llm / image / video / tts / music
+backend/app/agents/       optional Deep Agents coordinator
 docs/
+docker-compose.yml         optional Postgres + Redis
 ```
 
 ---
 
 ## Roadmap
 
-- **Phase 2** (current): live providers through slot adapters; Comfy H3/LTX workflow JSON still missing
-- **Phase 3**: Celery for long Seedance jobs
-- **Phase 4**: PostgreSQL + checkpoints
-- **Phase 5**: React portal + Docker Compose
+- **Now**: chat workflow + mock jobs; service adapters exist
+- **Next**: real BGM model, per-panel Seedance, lock/edit in UI, queue (Celery or BullMQ)
+- **Later**: richer uploads, checkpoints, Docker app stack
 
 ---
 

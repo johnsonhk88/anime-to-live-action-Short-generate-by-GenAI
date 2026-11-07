@@ -1,8 +1,8 @@
 # Quickstart
 
-Do Path A (mocks) before any GPU or API key work.
+Path A (mocks + UI) first. No GPU, no API keys.
 
-## 1. Install
+## 1. Backend
 
 ```bash
 cd backend
@@ -12,38 +12,47 @@ pip install -r requirements.txt
 cp .env.example .env
 ```
 
-## 2. Dry-run (no GPUs, no keys)
-
 In `.env`:
 
 ```env
 DEFAULT_MODE=hybrid
 MOCK_PROVIDERS=true
+DATABASE_URL=sqlite:///./data/workflow.db
 ```
-
-Start the API from `backend/`:
 
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-Open http://localhost:8000/docs
+http://localhost:8000/docs
 
 ```bash
 curl -s http://localhost:8000/health
 curl -s http://localhost:8000/health/slots | python3 -m json.tool
 ```
 
-`/health/slots` should show `mock_providers: true` and hybrid slots:
+Hybrid slots should be `openrouter` / `vllm_omni` / `minimax_h3` / `qwen3_tts` with `mock_providers: true` (cheap online LLM + local video). That JSON is engine routing — not Gemini/Veo.
 
-- `llm`: `lmstudio`
-- `image`: `vllm_omni`
-- `video`: `seedance_2.5`
-- `tts`: `qwen3_tts`
+The coordinator may fail to start without an LLM; **workflow chat still works**.
 
-That JSON is the source of truth. Do not assume Gemini or Veo.
+## 2. Frontend (Cutting Room)
 
-## 3. Unit tests
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+http://localhost:5173 — Vite proxies `/api` to `:8000`.
+
+1. **New project**
+2. Send a brief, e.g. `Dark-fantasy 30s short, scarred swordsman vs temple spirit, rain.`
+3. Boards fill: storyboard, characters, scenes, objects, VO, BGM
+4. Buttons: Regen VO audio · Regen BGM · Mix
+
+Same thing via curl: [08-workflow.md](08-workflow.md).
+
+## 3. Tests
 
 ```bash
 cd backend
@@ -51,13 +60,11 @@ source .venv/bin/activate
 pytest tests/ -v
 ```
 
-Tests force `MOCK_PROVIDERS=true` and ignore `backend/.env`.
+Pytest forces mocks and a temp SQLite file.
 
-## 4. Tool-only check (no coordinator LLM)
+## 4. Optional: engine smoke (not required for chat)
 
 ```bash
-cd backend
-source .venv/bin/activate
 python3 - <<'PY'
 from app.services.mode_factory import resolve_slots
 from app.agents.tools.analysis import analyze_anime_clip
@@ -66,9 +73,9 @@ print(analyze_anime_clip("/tmp/anime.mp4", "hybrid")["provider"])
 PY
 ```
 
-## 5. Full `/generate` (needs a coordinator LLM)
+## 5. Optional: Deep Agents `/generate`
 
-`POST /generate` always starts Deep Agents. Even with mocks, the **coordinator** needs a reachable OpenAI-compatible chat model (LM Studio by default).
+Needs a live coordinator LLM (LM Studio by default). **Blocking.** Prefer the Cutting Room for day-to-day work.
 
 ```bash
 curl -s -X POST http://localhost:8000/generate \
@@ -76,12 +83,12 @@ curl -s -X POST http://localhost:8000/generate \
   -d '{"clip_path": "/tmp/anime.mp4", "mode": "hybrid", "max_iterations": 1}'
 ```
 
-This call is **blocking**. Keep `max_iterations` at 1 until you know the stack is healthy.
+503 means the agent was not built — use `/api/projects` instead.
 
 ## 6. Next
 
-- Hybrid with real Seedance: [04-cloud-providers.md](04-cloud-providers.md)
-- Local engines: [03-local-engines.md](03-local-engines.md)
-- OpenCode: [05-mcp.md](05-mcp.md)
+- Film objects and jobs: [08-workflow.md](08-workflow.md)
+- Real Seedance / GPT Image: [04-cloud-providers.md](04-cloud-providers.md)
+- Local Omni / vLLM: [03-local-engines.md](03-local-engines.md)
 
-Notebooks under `backend/notebooks/` are **connectivity probes** (LM Studio, Comfy, Gemini, Deep Agents). They are not the required production stack. Prefer `/health/slots` for Phase 2.
+Notebooks in `backend/notebooks/` only probe engines. They are not the product.

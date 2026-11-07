@@ -1,14 +1,11 @@
 # Connectivity notebooks
 
-These Jupyter notebooks probe **individual engines**. They are not the Phase 2 control plane.
+These Jupyter notebooks probe **individual engines**. They are not the product.
 
-For what the pipeline will actually call, use:
+- Film / chat / boards: [docs/08-workflow.md](../../docs/08-workflow.md) and http://localhost:5173  
+- Engine routing: `curl -s http://localhost:8000/health/slots`
 
-```bash
-curl -s http://localhost:8000/health/slots | python3 -m json.tool
-```
-
-See [docs/01-quickstart.md](../../docs/01-quickstart.md) and [docs/02-modes-and-slots.md](../../docs/02-modes-and-slots.md).
+See [docs/01-quickstart.md](../../docs/01-quickstart.md).
 
 | Notebook | Probe |
 |----------|--------|

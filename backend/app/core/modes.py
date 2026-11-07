@@ -37,10 +37,11 @@ MODE_CONFIGS: dict[ExecutionMode, dict[str, str]] = {
         "video": "seedance_2.5",
         "tts": "openai_speech",
     },
+    # Cheap online LLM + local pixels. Cloud video (Seedance) stays on mode=cloud.
     ExecutionMode.HYBRID: {
-        "llm": "lmstudio",
+        "llm": "openrouter",
         "image": "vllm_omni",
-        "video": "seedance_2.5",
+        "video": "minimax_h3",
         "tts": "qwen3_tts",
     },
 }

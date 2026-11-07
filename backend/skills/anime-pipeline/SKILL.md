@@ -10,7 +10,9 @@ description: >-
 
 ## Overview
 
-This skill provides the standard workflow for converting Japanese anime clips into cinematic live-action short films using the Deep Agents framework.
+This skill is the **Deep Agents coordinator** path (clip path in, ordered subagents). The product path is **project chat** (`POST /api/projects/{id}/messages`) plus boards for characters, scenes, objects, VO, and BGM — see `docs/08-workflow.md`. Use this skill when the user is already inside a coordinator session and has a clip path.
+
+This skill provides the standard 7-step conversion of Japanese anime clips into cinematic live-action short films.
 
 ## Pipeline Steps
 
@@ -106,4 +108,4 @@ Slots are mix-and-match. Env `LLM_PROFILE` / `IMAGE_PROVIDER` / `VIDEO_PROVIDER`
 
 - **local**: LLM=LM Studio (or vLLM / SGLang / Strata), image=vLLM-Omni Qwen-Image (or SGLang Diffusion / ComfyUI), video=MiniMax H3 (or LTX 2.5), TTS=Qwen3-TTS.
 - **cloud**: LLM=OpenRouter, image=GPT Image 2 (Nano Banana 2 optional), video=Seedance 2.5 (OpenRouter or direct API), TTS=OpenAI speech (optional; Seedance already has native audio).
-- **hybrid** (default): local LLM + local Qwen-Image + Seedance 2.5 + local Qwen3-TTS.
+- **hybrid** (default): cheap online LLM (OpenRouter) + local Qwen-Image + local MiniMax H3 video + local Qwen3-TTS. Cloud clip APIs stay on `cloud` because they dominate cost.

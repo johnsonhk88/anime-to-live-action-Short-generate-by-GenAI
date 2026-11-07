@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     strata_api_key: Optional[str] = None
     api_key: Optional[str] = None  # generic / Strata fallback
 
+    database_url: str = "sqlite:///./data/workflow.db"
+    cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+
     langsmith_tracing: bool = False
     langsmith_api_key: Optional[str] = None
 

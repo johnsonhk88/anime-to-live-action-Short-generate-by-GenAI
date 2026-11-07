@@ -1,5 +1,7 @@
 # Local engines
 
+**Service layer** for workflow jobs and the optional coordinator. Product UI: [08-workflow.md](08-workflow.md).
+
 All local **LLM** engines speak OpenAI-compatible `POST {base}/chat/completions`. Image and TTS use different paths on Omni / SGLang Diffusion / Comfy. **Do not** point the chat LLM `base_url` at a diffusion-only server.
 
 Launchers you already maintain:
@@ -111,6 +113,8 @@ Drop API-format graphs in `backend/workflows/` (not the UI format):
 Those JSON files are **not in the repo yet**. Until they exist, local Comfy image/video calls fail and tools return `"fallback": "mock"`. See [`backend/workflows/README.md`](../backend/workflows/README.md).
 
 Prefer Omni/SGLang for local stills so you can skip Comfy for image.
+
+Hybrid (`DEFAULT_MODE=hybrid`) uses **MiniMax H3** here for video and Omni for stills; only the LLM goes to OpenRouter. Have Comfy + `minimax_h3.json` (or mocks) before turning `MOCK_PROVIDERS=false`.
 
 ## Fully local `.env` sketch
 

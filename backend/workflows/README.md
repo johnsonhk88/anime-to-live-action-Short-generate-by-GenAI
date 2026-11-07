@@ -1,5 +1,7 @@
 # ComfyUI workflows
 
+Used only when the **service** image/video slot is Comfy (`IMAGE_PROVIDER=comfyui` or `VIDEO_PROVIDER=minimax_h3` / `ltx_2.5`). The Cutting Room does not load these files itself.
+
 Drop API-format workflow JSON here. The video/image clients queue them with `POST {COMFYUI_BASE_URL}/prompt`.
 
 | File | Used by |

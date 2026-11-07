@@ -35,9 +35,9 @@ class TestResolveSlots:
     def test_hybrid_mode(self):
         slots = resolve_slots("hybrid")
         assert slots.to_dict() == {
-            "llm": "lmstudio",
+            "llm": "openrouter",
             "image": "vllm_omni",
-            "video": "seedance_2.5",
+            "video": "minimax_h3",
             "tts": "qwen3_tts",
         }
 
@@ -46,16 +46,16 @@ class TestResolveSlots:
 
     def test_resolve_providers_aliases(self):
         providers = resolve_providers("hybrid")
-        assert providers["analysis"] == providers["llm"] == "lmstudio"
+        assert providers["analysis"] == providers["llm"] == "openrouter"
         assert providers["image_gen"] == providers["image"] == "vllm_omni"
-        assert providers["video_gen"] == providers["video"] == "seedance_2.5"
+        assert providers["video_gen"] == providers["video"] == "minimax_h3"
         assert providers["tts"] == "qwen3_tts"
 
 
 class TestProviderGetters:
     @pytest.mark.parametrize(
         "mode,expected",
-        [("local", "lmstudio"), ("cloud", "openrouter"), ("hybrid", "lmstudio")],
+        [("local", "lmstudio"), ("cloud", "openrouter"), ("hybrid", "openrouter")],
     )
     def test_analysis_provider(self, mode, expected):
         assert get_analysis_provider(mode) == expected
@@ -69,7 +69,7 @@ class TestProviderGetters:
 
     @pytest.mark.parametrize(
         "mode,expected",
-        [("local", "minimax_h3"), ("cloud", "seedance_2.5"), ("hybrid", "seedance_2.5")],
+        [("local", "minimax_h3"), ("cloud", "seedance_2.5"), ("hybrid", "minimax_h3")],
     )
     def test_video_provider(self, mode, expected):
         assert get_video_gen_provider(mode) == expected

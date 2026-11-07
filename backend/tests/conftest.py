@@ -21,6 +21,7 @@ def isolate_settings(monkeypatch, tmp_path):
     monkeypatch.setenv("MOCK_PROVIDERS", "true")
     monkeypatch.setenv("DEFAULT_MODE", "hybrid")
     monkeypatch.setenv("SEEDANCE_BACKEND", "openrouter")
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{tmp_path}/workflow.db")
     for key in (
         "LLM_PROFILE",
         "LLM_MODEL",

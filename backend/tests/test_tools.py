@@ -133,7 +133,7 @@ class TestVideoGenerationTools:
         assert result["resolution"] == "1920x1080"
         assert "fps" in result
         assert "provider" in result
-        assert result["provider"] == "seedance_2.5"
+        assert result["provider"] == "minimax_h3"
 
     def test_apply_consistent_style(self):
         from app.agents.tools.video_generation import apply_consistent_style

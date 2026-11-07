@@ -1,5 +1,7 @@
 # Cloud providers
 
+**Service layer.** Hybrid/cloud workflow jobs use these when `MOCK_PROVIDERS=false`. Product: [08-workflow.md](08-workflow.md).
+
 Cloud slots also use HTTP. LLM chat is OpenAI-compatible. Image and video APIs differ per vendor.
 
 ## OpenRouter (default cloud LLM + default Seedance backend)
@@ -13,9 +15,9 @@ LLM_MODEL=anthropic/claude-sonnet-4.6
 
 Hybrid **video** also uses this key when `SEEDANCE_BACKEND=openrouter` (the default).
 
-## Seedance 2.5 (default cloud / hybrid video)
+## Seedance 2.5 (default **cloud** video only)
 
-Default video provider: `seedance_2.5`. Veo is optional fallback only (`VIDEO_PROVIDER=veo`).
+Hybrid video is **local** MiniMax H3 — clip APIs are the expensive part. Use Seedance when `DEFAULT_MODE=cloud` or you set `VIDEO_PROVIDER=seedance_2.5`. Veo is optional fallback (`VIDEO_PROVIDER=veo`).
 
 ### OpenRouter backend (default)
 
@@ -87,23 +89,29 @@ Or disable: `TTS_PROFILE=none`.
 
 ## Hybrid live `.env` sketch
 
-Local LM Studio + optional Omni image + Seedance on OpenRouter:
+Cheap OpenRouter LLM + local Omni stills + local MiniMax H3 video (no Seedance bill):
 
 ```env
 DEFAULT_MODE=hybrid
 MOCK_PROVIDERS=false
-LLM_PROFILE=lmstudio
-LLM_MODEL=your-lmstudio-id
 OPENROUTER_API_KEY=sk-or-...
+LLM_MODEL=your-cheap-openrouter-id
+# IMAGE_PROVIDER=vllm_omni   (default)
+# VIDEO_PROVIDER=minimax_h3  (default)
+```
+
+Need Seedance for one project anyway:
+
+```env
+VIDEO_PROVIDER=seedance_2.5
 SEEDANCE_BACKEND=openrouter
 ```
 
-If Omni is not running, send stills to the cloud:
+If Omni is not running, stills can go to GPT Image 2 (costs extra):
 
 ```env
 IMAGE_PROVIDER=gpt_image_2
 OPENAI_API_KEY=...
-TTS_PROFILE=none
 ```
 
 ## Fully cloud `.env` sketch

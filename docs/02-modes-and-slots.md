@@ -1,5 +1,7 @@
 # Modes and slots
 
+**Service layer.** The Cutting Room ([08-workflow.md](08-workflow.md)) picks a project `mode`; these slots decide which engines jobs call.
+
 A **mode** is only a bundle of defaults. Each run has four slots: `llm`, `image`, `video`, `tts`. Any slot can be overridden without changing mode.
 
 ```
@@ -12,9 +14,11 @@ GET /health/slots
 |------|-----|-------|-------|-----|
 | `local` | `lmstudio` | `vllm_omni` | `minimax_h3` | `qwen3_tts` |
 | `cloud` | `openrouter` | `gpt_image_2` | `seedance_2.5` | `openai_speech` |
-| `hybrid` | `lmstudio` | `vllm_omni` | `seedance_2.5` | `qwen3_tts` |
+| `hybrid` | `openrouter` | `vllm_omni` | `minimax_h3` | `qwen3_tts` |
 
 Unknown mode strings fall back to **hybrid**.
+
+**Why hybrid is cheap LLM + local video:** token APIs (OpenRouter, etc.) are relatively inexpensive. Clip APIs (Seedance, Veo) are not. Hybrid keeps story/chat/prompts in the cloud and burns GPU locally for H3/LTX (or Omni stills). Use `cloud` when you want Seedance quality and will pay for it.
 
 ## Overrides
 
@@ -41,8 +45,8 @@ Deprecated alias: `AGENT_MODEL=sglang:qwen-small` sets `LLM_PROFILE=sglang` and 
 |------|----------------|
 | No network, JSON shapes | `MOCK_PROVIDERS=true` (any mode) |
 | Privacy, offline | `DEFAULT_MODE=local` |
-| Best cloud video, local analysis | `DEFAULT_MODE=hybrid` + `OPENROUTER_API_KEY` |
-| All cloud | `DEFAULT_MODE=cloud` + OpenRouter + OpenAI keys |
+| Cheap LLM + local clips | `DEFAULT_MODE=hybrid` + `OPENROUTER_API_KEY` + MiniMax H3/LTX |
+| Paid cloud video | `DEFAULT_MODE=cloud` + OpenRouter + OpenAI keys (Seedance) |
 | GPT Image 2 character sheets | `IMAGE_PROVIDER=gpt_image_2` |
 | Skip voice-over | `TTS_PROFILE=none` or `TTS_ENABLED=false` |
 | vLLM instead of LM Studio | `LLM_PROFILE=vllm` |
@@ -52,7 +56,7 @@ Deprecated alias: `AGENT_MODEL=sglang:qwen-small` sets `LLM_PROFILE=sglang` and 
 Only **active** slots are validated.
 
 - `local` with defaults: no cloud keys (Strata still needs `STRATA_API_KEY` if you select it)
-- `hybrid` with defaults: `OPENROUTER_API_KEY` (Seedance). Switch `VIDEO_PROVIDER=minimax_h3` to avoid it
+- `hybrid` with defaults: `OPENROUTER_API_KEY` for the LLM only. Video is local `minimax_h3`. Set `VIDEO_PROVIDER=seedance_2.5` only if you opt into cloud clips.
 - `cloud` with defaults: `OPENROUTER_API_KEY` + `OPENAI_API_KEY`
 
 Startup prints a boxed error if a required key is missing.

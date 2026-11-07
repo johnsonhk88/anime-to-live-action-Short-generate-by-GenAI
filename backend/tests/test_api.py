@@ -20,7 +20,8 @@ class TestHealthEndpoint:
         data = resp.json()
         assert data["status"] == "ok"
         assert "slots" in data
-        assert data["slots"]["video"] == "seedance_2.5"
+        assert data["slots"]["llm"] == "openrouter"
+        assert data["slots"]["video"] == "minimax_h3"
 
 
 class TestGenerateEndpoint:

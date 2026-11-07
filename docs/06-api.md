@@ -1,54 +1,84 @@
 # HTTP API
 
-Base URL: `http://localhost:8000` (uvicorn). Interactive docs: http://localhost:8000/docs
+Base: `http://localhost:8000` · Swagger: http://localhost:8000/docs  
+Cwd: `backend/` so `.env` loads.
 
-The process cwd should be `backend/` so `.env` loads.
+Two surfaces:
 
-## `GET /health`
+- **Workflow** `/api/projects…` — chat, bible, jobs (the product)
+- **Legacy coordinator** `POST /generate` — optional Deep Agents one-shot
+
+---
+
+## Workflow
+
+CORS allows `http://localhost:5173`.
+
+### `POST /api/projects`
 
 ```json
-{"status": "ok"}
+{ "title": "Untitled short", "mode": "hybrid", "brief": "" }
 ```
 
-Liveness only. Does not probe LM Studio or Seedance.
+Returns the full project payload (empty boards).
 
-## `GET /health/slots`
+### `GET /api/projects`
 
-Shows the **default mode** slots (from `.env` `DEFAULT_MODE`), mock flag, Seedance backend, and every known profile id.
+`[{ "id", "title", "status", "mode" }]`
+
+### `GET /api/projects/{id}`
+
+Bible: `characters`, `scenes`, `objects`, `panels`, `vo_lines` (with `takes`), `music_cues`, `jobs`, `messages`, `assets`.
+
+404 if missing.
+
+### `POST /api/projects/{id}/messages`
+
+```json
+{ "content": "Dark-fantasy 30s short, scarred swordsman vs temple spirit." }
+```
+
+Stores the user line, runs the director, applies actions, **runs jobs in-process**, returns `{ message, project }`.
+
+First message on an empty project bootstraps the bible and enqueues VO + BGM jobs.
+
+### `POST /api/projects/{id}/jobs`
+
+```json
+{ "type": "regen_vo_audio", "target_id": "" }
+```
+
+`type`: `regen_vo_audio` | `regen_bgm` | `regen_scene_still` | `regen_object_still` | `mix`
+
+### `POST /api/projects/{id}/assets?kind=source_still`
+
+Multipart file field `file`. `kind` examples: `source_still`, `source_video`. Saved under `data/outputs/uploads/`.
+
+---
+
+## Health
+
+### `GET /health`
+
+```json
+{ "status": "ok" }
+```
+
+Does not probe engines.
+
+### `GET /health/slots`
+
+Default **mode** slots, `mock_providers`, Seedance backend, profile catalog, `pipeline_agent` (whether Deep Agents started).
 
 ```bash
 curl -s http://localhost:8000/health/slots | python3 -m json.tool
 ```
 
-Example shape:
+---
 
-```json
-{
-  "status": "ok",
-  "mode": "hybrid",
-  "slots": {
-    "llm": "lmstudio",
-    "image": "vllm_omni",
-    "video": "seedance_2.5",
-    "tts": "qwen3_tts"
-  },
-  "mock_providers": true,
-  "seedance_backend": "openrouter",
-  "known_profiles": {
-    "llm": ["github_copilot", "grok", "lmstudio", "..."],
-    "image": ["comfyui", "gpt_image_2", "..."],
-    "video": ["ltx_2.5", "minimax_h3", "seedance_2.5", "veo"],
-    "tts": ["comfy_tts", "cosyvoice3", "none", "openai_speech", "qwen3_tts"],
-    "modes": ["local", "cloud", "hybrid"]
-  }
-}
-```
+## `POST /generate` (optional coordinator)
 
-`POST /generate` can still pass a different `mode` per request; that does not change this endpoint.
-
-## `POST /generate`
-
-**Blocking.** Starts the Deep Agents coordinator and waits for the final message.
+**Blocking** `agent.invoke`. 503 if the coordinator was not created at boot (workflow still works).
 
 ```json
 {
@@ -59,37 +89,6 @@ Example shape:
 }
 ```
 
-| Field | Required | Default | Notes |
-|-------|----------|---------|--------|
-| `clip_path` | yes | | Path the analyze tool receives |
-| `mode` | no | `hybrid` | `local` / `cloud` / `hybrid` |
-| `max_iterations` | no | `3` | Quality-loop hint in the user message |
-| `voiceover_text` | no | `""` | If set, appended to the coordinator prompt |
+Missing `clip_path` → 422.
 
-```bash
-curl -s -X POST http://localhost:8000/generate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "clip_path": "/data/anime.mp4",
-    "mode": "hybrid",
-    "max_iterations": 2,
-    "voiceover_text": "The hero steps into the ruined temple."
-  }'
-```
-
-Response:
-
-```json
-{"result": "<final coordinator message>"}
-```
-
-Missing `clip_path` → HTTP 422.
-
-On startup, missing keys for the **default** mode abort the process with `pipeline agent creation failed`. Fix `.env` and restart. A request `mode` that needs extra keys is not pre-validated at boot.
-
-## Coordinator vs tools
-
-- Tools honor `MOCK_PROVIDERS` and the slots for the request `mode`.
-- The coordinator model is built from the **default** mode’s LLM slot at process start (`create_pipeline_agent()` in lifespan). Changing only the JSON `mode` does not rebuild the coordinator LLM.
-
-Restart uvicorn after changing `LLM_PROFILE` / keys / `MOCK_PROVIDERS`.
+The coordinator LLM is the **default** mode’s LLM slot at process start. Restart uvicorn after changing `LLM_PROFILE` / keys / `MOCK_PROVIDERS`.

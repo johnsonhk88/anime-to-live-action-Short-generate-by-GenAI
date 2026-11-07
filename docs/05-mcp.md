@@ -1,6 +1,6 @@
 # MCP
 
-The pipeline is also an MCP server so OpenCode (and other agents) can call the same tools as FastAPI.
+OpenCode can call **pipeline tools** (analyze, generate clip, VO). Project chat / storyboard live on the HTTP workflow API ([06-api.md](06-api.md)), not yet as MCP tools.
 
 Working directory **must** be `backend/`.
 
